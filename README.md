@@ -8,3 +8,14 @@ Enterprise-grade rule-based SOC threat detection &amp; IP reputation enrichment 
 ✔ 5-factor explainable threat detection  
 ✔ IP reputation enrichment (AbuseIPDB integration)  
 ✔ Dashboard visualization  
+
+
+## 🛡️ SOC Analyst Perspective
+
+This platform simulates how a Tier 1 SOC analyst:
+
+- Parses raw logs
+- Identifies suspicious patterns
+- Enriches alerts with threat intelligence
+- Prioritizes based on risk score
+- Generates investigation-ready summaries
