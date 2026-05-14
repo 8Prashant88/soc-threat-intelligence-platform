@@ -20,16 +20,42 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.id) {
-      setAlerts(getUserAlerts(user.id))
+    if (!user?.id) {
+      setAlerts([])
       setLoading(false)
+      return
+    }
+
+    let isMounted = true
+    getUserAlerts(user.id)
+      .then((loadedAlerts) => {
+        if (isMounted) {
+          setAlerts(loadedAlerts)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAlerts([])
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [user?.id])
 
-  const handleUpdateStatus = (alertId: string, status: SecurityAlert["status"]) => {
-    if (user?.id) {
-      updateAlertStatus(user.id, alertId, status)
+  const handleUpdateStatus = async (alertId: string, status: SecurityAlert["status"]) => {
+    if (!user?.id) {
+      return
+    }
+
+    try {
+      await updateAlertStatus(user.id, alertId, status)
       setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, status } : a)))
+    } catch {
+      // ignore
     }
   }
 

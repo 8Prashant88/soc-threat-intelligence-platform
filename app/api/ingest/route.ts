@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { parseLogs } from "@/lib/log-parser"
-import { addUserLogs, findUserById } from "@/lib/data-store"
+import { addUserLogs, findUserById } from "@/lib/db"
 import type { ParsedLogResult } from "@/lib/types"
 
 /**

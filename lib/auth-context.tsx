@@ -11,8 +11,8 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import type { User } from "./types"
-import { getSession, setSession, clearSession, verifyPassword, hashPassword, getRedirectPath } from "./auth"
-import { findUserByEmail, createUser, updateUserLastLogin } from "./data-store"
+import { getSession, setSession, clearSession, hashPassword, getRedirectPath } from "./auth"
+import { login as apiLogin, signup as apiSignup } from "./data-store"
 
 // Auth context type - simplified without roles
 interface AuthContextType {
@@ -58,25 +58,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const foundUser = findUserByEmail(email)
+      try {
+        const result = await apiLogin(email, password)
+        if (!result.success || !result.user) {
+          return { success: false, error: result.error || "Invalid email or password" }
+        }
 
-      if (!foundUser) {
-        return { success: false, error: "Invalid email or password" }
+        setSession(result.user)
+        const session = getSession()
+        if (session) {
+          setUser(session.user)
+        }
+
+        router.push(getRedirectPath())
+        return { success: true }
+      } catch (error: any) {
+        return { success: false, error: error?.message || "Login failed" }
       }
-
-      if (!verifyPassword(password, foundUser.passwordHash)) {
-        return { success: false, error: "Invalid email or password" }
-      }
-
-      updateUserLastLogin(foundUser.id)
-      setSession(foundUser)
-      const session = getSession()
-      if (session) {
-        setUser(session.user)
-      }
-
-      router.push(getRedirectPath())
-      return { success: true }
     },
     [router],
   )
@@ -86,29 +84,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const existingUser = findUserByEmail(email)
-      if (existingUser) {
-        return { success: false, error: "An account with this email already exists" }
-      }
+      try {
+        const result = await apiSignup(name, email, password)
+        if (!result.success || !result.user) {
+          return { success: false, error: result.error || "Signup failed" }
+        }
 
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name,
-        email: email.toLowerCase(),
-        passwordHash: hashPassword(password),
-        createdAt: new Date(),
-        lastLogin: new Date(),
-      }
+        setSession(result.user)
+        const session = getSession()
+        if (session) {
+          setUser(session.user)
+        }
 
-      createUser(newUser)
-      setSession(newUser)
-      const session = getSession()
-      if (session) {
-        setUser(session.user)
+        router.push(getRedirectPath())
+        return { success: true }
+      } catch (error: any) {
+        return { success: false, error: error?.message || "Signup failed" }
       }
-
-      router.push(getRedirectPath())
-      return { success: true }
     },
     [router],
   )

@@ -28,11 +28,50 @@ export default function ReportsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([])
 
   useEffect(() => {
-    if (user?.id) {
-      setStats(getUserStats(user.id))
-      setAttacksData(getUserAttacksByDay(user.id))
-      setTopThreats(getUserTopAttackingIPs(user.id))
-      setLogs(getUserLogs(user.id))
+    if (!user?.id) {
+      setStats({
+        totalLogs: 0,
+        suspiciousIps: 0,
+        highRiskThreats: 0,
+        logsThisWeek: 0,
+      })
+      setAttacksData([])
+      setTopThreats([])
+      setLogs([])
+      return
+    }
+
+    let isMounted = true
+    Promise.all([
+      getUserStats(user.id),
+      getUserAttacksByDay(user.id),
+      getUserTopAttackingIPs(user.id),
+      getUserLogs(user.id),
+    ])
+      .then(([statsResult, attacksResult, topResult, logsResult]) => {
+        if (isMounted) {
+          setStats(statsResult)
+          setAttacksData(attacksResult)
+          setTopThreats(topResult)
+          setLogs(logsResult)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setStats({
+            totalLogs: 0,
+            suspiciousIps: 0,
+            highRiskThreats: 0,
+            logsThisWeek: 0,
+          })
+          setAttacksData([])
+          setTopThreats([])
+          setLogs([])
+        }
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [user?.id])
 

@@ -37,9 +37,26 @@ export default function LogsPage() {
 
   // Load user's logs on mount
   useEffect(() => {
-    if (user?.id) {
-      const userLogs = getUserLogs(user.id)
-      setLogs(userLogs)
+    if (!user?.id) {
+      setLogs([])
+      return
+    }
+
+    let isMounted = true
+    getUserLogs(user.id)
+      .then((userLogs) => {
+        if (isMounted) {
+          setLogs(userLogs)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLogs([])
+        }
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [user?.id])
 
@@ -67,26 +84,44 @@ export default function LogsPage() {
   }, [logs, searchQuery, typeFilter])
 
   // Handle new logs added
-  const handleLogsAdded = (result: ParsedLogResult) => {
-    if (user?.id && result.success) {
-      const addedLogs = addUserLogs(user.id, result.entries)
+  const handleLogsAdded = async (result: ParsedLogResult) => {
+    if (!user?.id || !result.success) {
+      return
+    }
+
+    try {
+      const addedLogs = await addUserLogs(user.id, result.entries)
       setLogs((prev) => [...prev, ...addedLogs])
+    } catch {
+      // ignore silently for now
     }
   }
 
   // Handle log deletion
-  const handleDeleteLog = (logId: string) => {
-    if (user?.id) {
-      deleteUserLog(user.id, logId)
+  const handleDeleteLog = async (logId: string) => {
+    if (!user?.id) {
+      return
+    }
+
+    try {
+      await deleteUserLog(user.id, logId)
       setLogs((prev) => prev.filter((l) => l.id !== logId))
+    } catch {
+      // ignore silently for now
     }
   }
 
   // Handle clear all logs
-  const handleClearAll = () => {
-    if (user?.id) {
-      clearUserLogs(user.id)
+  const handleClearAll = async () => {
+    if (!user?.id) {
+      return
+    }
+
+    try {
+      await clearUserLogs(user.id)
       setLogs([])
+    } catch {
+      // ignore silently for now
     }
   }
 

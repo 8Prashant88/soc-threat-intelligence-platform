@@ -19,8 +19,26 @@ export default function ThreatsPage() {
   const [threats, setThreats] = useState<ThreatIntelligence[]>([])
 
   useEffect(() => {
-    if (user?.id) {
-      setThreats(getUserThreats(user.id))
+    if (!user?.id) {
+      setThreats([])
+      return
+    }
+
+    let isMounted = true
+    getUserThreats(user.id)
+      .then((loadedThreats) => {
+        if (isMounted) {
+          setThreats(loadedThreats)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setThreats([])
+        }
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [user?.id])
 

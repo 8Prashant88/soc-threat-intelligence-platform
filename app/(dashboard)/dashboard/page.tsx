@@ -30,10 +30,47 @@ export default function DashboardPage() {
   const [topThreats, setTopThreats] = useState<TopAttackingIP[]>([])
 
   useEffect(() => {
-    if (user?.id) {
-      setStats(getUserStats(user.id))
-      setAttacksData(getUserAttacksByDay(user.id))
-      setTopThreats(getUserTopAttackingIPs(user.id))
+    if (!user?.id) {
+      setStats({
+        totalLogs: 0,
+        suspiciousIps: 0,
+        highRiskThreats: 0,
+        logsThisWeek: 0,
+      })
+      setAttacksData([])
+      setTopThreats([])
+      return
+    }
+
+    let isMounted = true
+
+    Promise.all([
+      getUserStats(user.id),
+      getUserAttacksByDay(user.id),
+      getUserTopAttackingIPs(user.id),
+    ])
+      .then(([statsResult, attacksResult, topResult]) => {
+        if (isMounted) {
+          setStats(statsResult)
+          setAttacksData(attacksResult)
+          setTopThreats(topResult)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setStats({
+            totalLogs: 0,
+            suspiciousIps: 0,
+            highRiskThreats: 0,
+            logsThisWeek: 0,
+          })
+          setAttacksData([])
+          setTopThreats([])
+        }
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [user?.id])
 
