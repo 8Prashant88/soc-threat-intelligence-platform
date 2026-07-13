@@ -146,27 +146,27 @@ export function ThreatDetailDialog({ threat, open, onOpenChange }: ThreatDetailD
                     <p className="text-xs text-muted-foreground">Abuse Score (0-100)</p>
                     <Badge
                       className={cn(
-                        threat.enrichment.abuseScore >= 80
+                        (threat.enrichment.abuseScore ?? 0) >= 80
                           ? "bg-danger/20 text-danger"
-                          : threat.enrichment.abuseScore >= 50
+                          : (threat.enrichment.abuseScore ?? 0) >= 50
                             ? "bg-warning/20 text-warning"
-                            : threat.enrichment.abuseScore >= 25
+                            : (threat.enrichment.abuseScore ?? 0) >= 25
                               ? "bg-info/20 text-info"
                               : "bg-success/20 text-success",
                       )}
                     >
-                      {threat.enrichment.abuseScore}/100
+                      {(threat.enrichment.abuseScore ?? 0)}/100
                     </Badge>
                   </div>
                   <Progress
-                    value={threat.enrichment.abuseScore}
+                    value={(threat.enrichment.abuseScore ?? 0)}
                     className={cn(
                       "h-2",
-                      threat.enrichment.abuseScore >= 80
+                      (threat.enrichment.abuseScore ?? 0) >= 80
                         ? "[&>div]:bg-danger"
-                        : threat.enrichment.abuseScore >= 50
+                        : (threat.enrichment.abuseScore ?? 0) >= 50
                           ? "[&>div]:bg-warning"
-                          : threat.enrichment.abuseScore >= 25
+                          : (threat.enrichment.abuseScore ?? 0) >= 25
                             ? "[&>div]:bg-info"
                             : "[&>div]:bg-success",
                     )}

@@ -8,6 +8,7 @@ import type {
   TopAttackingIP,
   User,
 } from "./types"
+import { Prisma } from "@prisma/client"
 import { prisma } from "./prisma"
 import { analyzeUserLogs } from "./threat-algorithm"
 import { analyzeIpReputation } from "./ip-reputation-check"
@@ -402,7 +403,7 @@ async function analyzeLogsForThreats(userId: string): Promise<void> {
   const incomingIds = new Set(enrichedThreats.map((t) => t.id))
   const removedIds = existingThreats.filter((t) => !incomingIds.has(t.id)).map((t) => t.id)
 
-  const operations = enrichedThreats.map((threat) =>
+  const operations: Prisma.PrismaPromise<unknown>[] = enrichedThreats.map((threat) =>
     prisma.threatIntelligence.upsert({
       where: { id: threat.id },
       create: {

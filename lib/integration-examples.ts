@@ -112,7 +112,7 @@ export function generateSecurityReport(
   const mediumThreatCount = threats.filter((t) => t.threatLevel === "medium").length
   const lowThreatCount = threats.filter((t) => t.threatLevel === "low").length
 
-  let report = `
+  const report = `
 # Security Analysis Report
 Generated: ${timestamp}
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { findUserById, getUserAttacksByDay, getUserStats, getUserTopAttackingIPs } from "@/lib/db"
 
-export async function GET(_: Request, { params }: { params: { userId: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params
   const user = await findUserById(userId)
   if (!user) {

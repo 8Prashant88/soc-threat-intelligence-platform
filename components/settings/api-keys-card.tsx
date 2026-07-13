@@ -128,7 +128,7 @@ export SECURELOG_API_KEY="${freshKey ?? "<your-api-key>"}"
           <div className="rounded-lg border border-success/40 bg-success/10 p-4 space-y-3">
             <div className="flex items-center gap-2 text-success">
               <Key className="h-4 w-4" />
-              <span className="text-sm font-medium">New key created — copy it now, it won't be shown again.</span>
+              <span className="text-sm font-medium">New key created — copy it now, it won&apos;t be shown again.</span>
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 overflow-x-auto rounded-md bg-secondary px-3 py-2 font-mono text-sm text-card-foreground">
@@ -161,7 +161,7 @@ export SECURELOG_API_KEY="${freshKey ?? "<your-api-key>"}"
             {setupCommand}
           </pre>
           <p className="text-xs text-muted-foreground">
-            Run from the project root. The agent streams security events from this Mac's unified log and ships them to{" "}
+            Run from the project root. The agent streams security events from this Mac&apos;s unified log and ships them to{" "}
             <code className="text-primary">{endpoint}</code> in real time.
           </p>
         </div>
@@ -206,7 +206,7 @@ export SECURELOG_API_KEY="${freshKey ?? "<your-api-key>"}"
                         <AlertDialogHeader>
                           <AlertDialogTitle>Revoke this key?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Any device using "{key.name}" will immediately stop being able to send logs. This cannot be
+                            Any device using &quot;{key.name}&quot; will immediately stop being able to send logs. This cannot be
                             undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>

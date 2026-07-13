@@ -47,7 +47,7 @@ export function UserThreatsTable({ threats, onUpdateStatus }: UserThreatsTablePr
             <Shield className="h-12 w-12 text-success mx-auto mb-4" />
             <h3 className="text-lg font-medium text-card-foreground mb-2">No threats detected</h3>
             <p className="text-sm text-muted-foreground">
-              Your logs don't show any significant threats. Keep uploading logs for continuous monitoring.
+              Your logs don&apos;t show any significant threats. Keep uploading logs for continuous monitoring.
             </p>
           </div>
         </CardContent>
