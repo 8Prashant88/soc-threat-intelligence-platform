@@ -178,13 +178,38 @@ function convertAbuseIPDBResponse(response: AbuseIPDBResponse): IpReputationData
 }
 
 /**
+ * Whether an address is a public, routable IPv4 worth querying AbuseIPDB for.
+ * Private, loopback, link-local, and placeholder addresses (e.g. 0.0.0.0,
+ * 192.168.x, 10.x, 127.x) are never in a public reputation database, so we
+ * skip the network call and let the caller fall back to local heuristics.
+ */
+function isPublicIpv4(ip: string): boolean {
+  const m = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (!m) return false
+  const [a, b] = [Number(m[1]), Number(m[2])]
+  if ([a, b, Number(m[3]), Number(m[4])].some((o) => o > 255)) return false
+  if (a === 0 || a === 10 || a === 127) return false // this-host, private, loopback
+  if (a === 172 && b >= 16 && b <= 31) return false // private
+  if (a === 192 && b === 168) return false // private
+  if (a === 169 && b === 254) return false // link-local
+  if (a === 100 && b >= 64 && b <= 127) return false // CGNAT
+  if (a >= 224) return false // multicast / reserved
+  return true
+}
+
+/**
  * Check IP reputation using AbuseIPDB API
- * Requires: NEXT_PUBLIC_ABUSEIPDB_API_KEY environment variable
+ * Requires: NEXT_PUBLIC_ABUSEIPDB_API_KEY (or ABUSEIPDB_API_KEY) environment variable
  *
  * Free tier: 1000 requests per day
  * Premium: More requests
  */
 export async function checkIpReputationFromAPI(ipAddress: string): Promise<IpReputationData | null> {
+  // Only public, routable IPv4 addresses can have AbuseIPDB reputation data.
+  if (!isPublicIpv4(ipAddress)) {
+    return null
+  }
+
   // Check cache first
   const cached = reputationCache.get(ipAddress)
   if (cached) {

@@ -10,8 +10,7 @@ import type {
 } from "./types"
 import { Prisma } from "@prisma/client"
 import { prisma } from "./prisma"
-import { analyzeUserLogs } from "./threat-algorithm"
-import { analyzeIpReputation } from "./ip-reputation-check"
+import { analyzeLogsWithAdvancedDetectionAsync } from "./threat-analysis-integration"
 import { generateApiKey, hashApiKey } from "./api-keys"
 
 const ALERT_TYPE_MAP: Record<string, { type: string; severity: string }> = {
@@ -20,6 +19,29 @@ const ALERT_TYPE_MAP: Record<string, { type: string; severity: string }> = {
   sql_injection: { type: "sql_injection", severity: "critical" },
   malware_suspicious_activity: { type: "malware", severity: "critical" },
   ddos_attack: { type: "ddos_attack", severity: "critical" },
+}
+
+// The advanced detector labels attacks with human-readable names; map them to
+// the canonical keys above so alert typing stays consistent. Anything that
+// isn't a concrete attack (e.g. "Suspicious Activity") maps to nothing, so
+// benign IPs produce no attack types and therefore no alerts.
+const ATTACK_TYPE_ALIASES: Record<string, string> = {
+  "ssh brute force": "ssh_bruteforce",
+  "web brute force": "web_bruteforce",
+  "sql injection": "sql_injection",
+  malware: "malware_suspicious_activity",
+  "web shell upload": "malware_suspicious_activity",
+  ddos: "ddos_attack",
+}
+
+function normalizeAttackTypes(types: string[]): string[] {
+  const out = new Set<string>()
+  for (const t of types) {
+    const key = t.toLowerCase().trim()
+    if (ATTACK_TYPE_ALIASES[key]) out.add(ATTACK_TYPE_ALIASES[key])
+    else if (t in ALERT_TYPE_MAP) out.add(t) // already a canonical key
+  }
+  return [...out]
 }
 
 function mapDbUser(user: any): User {
@@ -389,12 +411,16 @@ export async function getUserTopAttackingIPs(userId: string): Promise<TopAttacki
 
 async function analyzeLogsForThreats(userId: string): Promise<void> {
   const userLogs = await getUserLogs(userId)
-  const analyzed = analyzeUserLogs(userLogs, userId)
+
+  // Advanced detection + real IP reputation (AbuseIPDB). Public IPs are enriched
+  // from the API when ABUSEIPDB_API_KEY is set; otherwise (and for private/local
+  // IPs) it transparently falls back to the built-in reputation heuristics.
+  const analyzed = await analyzeLogsWithAdvancedDetectionAsync(userLogs, userId)
 
   const enrichedThreats = analyzed.map((threat) => ({
     ...threat,
-    enrichment: analyzeIpReputation(threat.ipAddress).reputation,
-    detectedAttackTypes: threat.detectedAttackTypes ?? [],
+    // Map the detector's human-readable attack labels to canonical alert keys.
+    detectedAttackTypes: normalizeAttackTypes(threat.detectedAttackTypes ?? []),
     detectionMethods: threat.detectionMethods ?? [],
     recommendations: threat.recommendations ?? [],
   }))
