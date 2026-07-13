@@ -8,9 +8,10 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Upload, Plus } from "lucide-react"
+import { FileText, Upload, Plus, Radio } from "lucide-react"
 import { LogPasteDialog } from "./log-paste-dialog"
 import { LogUploadDialog } from "./log-upload-dialog"
+import { ApiEndpointDialog } from "./api-endpoint-dialog"
 import type { ParsedLogResult } from "@/lib/types"
 
 interface LogIngestionTabsProps {
@@ -20,8 +21,17 @@ interface LogIngestionTabsProps {
 export function LogIngestionTabs({ onLogsAdded }: LogIngestionTabsProps) {
   const [isPasteOpen, setIsPasteOpen] = useState(false)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
+  const [isApiOpen, setIsApiOpen] = useState(false)
 
   const methods = [
+    {
+      id: "device",
+      icon: Radio,
+      title: "Stream from Device",
+      description: "Real-time logs via API key (macOS agent / API)",
+      action: () => setIsApiOpen(true),
+      highlight: true,
+    },
     {
       id: "paste",
       icon: FileText,
@@ -46,7 +56,9 @@ export function LogIngestionTabs({ onLogsAdded }: LogIngestionTabsProps) {
             <Plus className="h-5 w-5 text-primary" />
             Add Logs
           </CardTitle>
-          <CardDescription>Choose how you want to submit your log data for analysis</CardDescription>
+          <CardDescription>
+            Stream logs live from your device with an API key, or add them manually by paste or file upload.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -54,7 +66,9 @@ export function LogIngestionTabs({ onLogsAdded }: LogIngestionTabsProps) {
               <Button
                 key={method.id}
                 variant="outline"
-                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-secondary hover:border-primary/50 bg-transparent"
+                className={`h-auto p-4 flex flex-col items-center gap-2 hover:bg-secondary hover:border-primary/50 bg-transparent ${
+                  method.highlight ? "border-primary/50 ring-1 ring-primary/20" : ""
+                }`}
                 onClick={method.action}
               >
                 <method.icon className="h-8 w-8 text-primary" />
@@ -67,6 +81,7 @@ export function LogIngestionTabs({ onLogsAdded }: LogIngestionTabsProps) {
       </Card>
 
       {/* Dialogs */}
+      <ApiEndpointDialog open={isApiOpen} onOpenChange={setIsApiOpen} />
       <LogPasteDialog open={isPasteOpen} onOpenChange={setIsPasteOpen} onLogsAdded={onLogsAdded} />
       <LogUploadDialog open={isUploadOpen} onOpenChange={setIsUploadOpen} onLogsAdded={onLogsAdded} />
     </>

@@ -49,6 +49,10 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
   -H "Authorization: Bearer <your-api-key>" \\
   -d '${JSON.stringify({ logs: ["Failed password for admin from 192.168.1.100 port 22 ssh2"] })}'`
 
+  const agentQuickStart = `export SECURELOG_ENDPOINT="${apiEndpoint}"
+export SECURELOG_API_KEY="<your-api-key>"
+./scripts/securelog-agent.sh`
+
   const handleCopy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text)
     setCopied(key)
@@ -70,6 +74,54 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Real-time macOS agent quick-start */}
+          <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-card-foreground flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-primary" />
+                Real-time macOS streaming (recommended)
+              </label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(agentQuickStart, "agent")}
+                className="h-7 text-xs"
+              >
+                {copied === "agent" ? (
+                  <>
+                    <Check className="mr-1 h-3 w-3 text-success" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-1 h-3 w-3" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+            <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-1">
+              <li>
+                Create a device key in{" "}
+                <Link href="/settings" className="text-primary underline underline-offset-2">
+                  Settings → Devices &amp; API Keys
+                </Link>
+                .
+              </li>
+              <li>
+                From the project folder, run the commands below (paste your key). The agent streams this Mac&apos;s
+                security logs in real time — new events appear on this page automatically.
+              </li>
+            </ol>
+            <pre className="bg-secondary rounded-md p-3 text-xs font-mono text-card-foreground overflow-x-auto whitespace-pre-wrap">
+              {agentQuickStart}
+            </pre>
+            <p className="text-xs text-muted-foreground">
+              Other devices: set <code className="text-primary">SECURELOG_ENDPOINT</code> to this server&apos;s address
+              and POST logs with the same API key (see the cURL example below).
+            </p>
+          </div>
+
           {/* Endpoint URL */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-card-foreground">Endpoint URL</label>
