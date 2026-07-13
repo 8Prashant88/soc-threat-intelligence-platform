@@ -150,3 +150,7 @@ and produce investigation-ready summaries — automatically, in real time.
   instance beyond localhost, put it behind a trusted network or reverse proxy
   with real auth.
 - Data is stored in a local **SQLite** database (`prisma/dev.db`).
+
+## 📄 License
+
+Released under the [MIT License](LICENSE).
