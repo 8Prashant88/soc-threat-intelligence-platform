@@ -6,6 +6,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useInterval } from "@/hooks/use-interval"
 import { Header } from "@/components/layout/header"
 import { LogIngestionTabs } from "@/components/logs/log-ingestion-tabs"
 import { UserLogsTable } from "@/components/logs/user-logs-table"
@@ -59,6 +60,15 @@ export default function LogsPage() {
       isMounted = false
     }
   }, [user?.id])
+
+  // Live updates: re-fetch logs every 5s so device-shipped logs appear
+  // automatically without a manual refresh.
+  useInterval(() => {
+    if (!user?.id) return
+    getUserLogs(user.id)
+      .then((userLogs) => setLogs(userLogs))
+      .catch(() => {})
+  }, user?.id ? 5000 : null)
 
   // Apply filters
   useEffect(() => {

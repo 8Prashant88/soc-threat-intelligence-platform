@@ -5,7 +5,8 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { useInterval } from "@/hooks/use-interval"
 import { Header } from "@/components/layout/header"
 import { UserDashboardStats } from "@/components/dashboard/user-dashboard-stats"
 import { UserAttacksChart } from "@/components/dashboard/user-attacks-chart"
@@ -73,6 +74,21 @@ export default function DashboardPage() {
       isMounted = false
     }
   }, [user?.id])
+
+  // Live updates: refresh stats, charts, and top threats every 5s so newly
+  // ingested device logs and their analysis show up automatically.
+  const refresh = useCallback(() => {
+    if (!user?.id) return
+    Promise.all([getUserStats(user.id), getUserAttacksByDay(user.id), getUserTopAttackingIPs(user.id)])
+      .then(([statsResult, attacksResult, topResult]) => {
+        setStats(statsResult)
+        setAttacksData(attacksResult)
+        setTopThreats(topResult)
+      })
+      .catch(() => {})
+  }, [user?.id])
+
+  useInterval(refresh, user?.id ? 5000 : null)
 
   return (
     <div className="min-h-screen">

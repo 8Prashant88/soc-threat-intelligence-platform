@@ -113,27 +113,104 @@ function parseSingleLine(line: string): ParsedLine | null {
 }
 
 /**
- * Parse JSON structured logs
+ * Parse JSON structured logs.
+ *
+ * Handles both generic JSON logs and macOS unified-log `ndjson` records
+ * (as emitted by `log stream --style ndjson`), which use Apple-specific field
+ * names: `eventMessage`, `processImagePath`, `messageType`, and a
+ * space-separated timestamp like "2024-06-22 14:30:00.123456-0700".
  */
 function parseJSONLog(line: string): ParsedLine | null {
   try {
     const json = JSON.parse(line)
-    const timestamp = new Date(json.timestamp || json.time || json.ts || Date.now())
-    const sourceIp = json.source_ip || json.sourceIp || json.src || extractIP(JSON.stringify(json)) || "0.0.0.0"
-    const message = json.message || json.msg || json.content || JSON.stringify(json).substring(0, 200)
-    const logType = json.type || json.level || "system"
+
+    // macOS unified-log records carry the message in `eventMessage`.
+    const message =
+      json.message || json.msg || json.content || json.eventMessage || JSON.stringify(json).substring(0, 200)
+
+    const timestamp = parseFlexibleTimestamp(json.timestamp || json.time || json.ts)
+
+    const sourceIp =
+      json.source_ip || json.sourceIp || json.src || extractIP(message) || extractIP(JSON.stringify(json)) || "0.0.0.0"
+
+    // Derive the process name from Apple's `processImagePath` (full path) or
+    // a plain `process` field, then classify the log type from it.
+    const processPath: string = json.processImagePath || json.process || json.processName || ""
+    const procName = processPath.split("/").pop()?.toLowerCase() || ""
+
+    let logType: LogType
+    const declaredType = (json.type || "").toLowerCase()
+    if (declaredType === "auth" || declaredType === "authentication") {
+      logType = "auth"
+    } else if (
+      procName.includes("ssh") ||
+      procName.includes("sudo") ||
+      procName.includes("authd") ||
+      procName.includes("loginwindow") ||
+      procName.includes("opendirectoryd") ||
+      procName.includes("securityd")
+    ) {
+      logType = "auth"
+    } else if (procName.includes("pf") || procName.includes("firewall") || procName.includes("socketfilterfw")) {
+      logType = "firewall"
+    } else if (procName.includes("apache") || procName.includes("nginx") || procName.includes("httpd")) {
+      logType = "application"
+    } else if (procName.includes("network") || procName.includes("wifi") || procName.includes("airport")) {
+      logType = "network"
+    } else if (declaredType === "firewall" || declaredType === "network" || declaredType === "application") {
+      logType = declaredType as LogType
+    } else {
+      logType = "system"
+    }
+
+    // macOS `messageType`: Error/Fault map to higher severity.
+    const messageType = (json.messageType || "").toLowerCase()
+    let severity: LogEntry["severity"]
+    if (json.severity) {
+      severity = json.severity
+    } else if (messageType === "fault") {
+      severity = "critical"
+    } else if (messageType === "error") {
+      severity = "error"
+    } else if (json.level && typeof json.level === "string" && json.level !== procName) {
+      severity = json.level as LogEntry["severity"]
+    } else {
+      severity = determineSeverity(message)
+    }
+
+    // Prefix the process name so the UI shows context (matches Mac log style).
+    const displayMessage = procName ? `[${procName}] ${message}` : message
 
     return {
       timestamp,
       sourceIp,
-      logType: (logType === "auth" || logType === "authentication" ? "auth" : "system") as LogType,
-      message,
-      severity: json.severity || json.level || determineSeverity(message),
+      logType,
+      message: displayMessage,
+      severity,
       rawLog: line,
     }
   } catch {
     return null
   }
+}
+
+/**
+ * Parse a timestamp that may be ISO, a unix epoch, or Apple's unified-log
+ * format ("2024-06-22 14:30:00.123456-0700"). Falls back to "now" on failure.
+ */
+function parseFlexibleTimestamp(value: unknown): Date {
+  if (value === undefined || value === null || value === "") return new Date()
+
+  let candidate = new Date(value as string | number)
+  if (!isNaN(candidate.getTime())) return candidate
+
+  // Apple format uses a space between date and time — convert to ISO.
+  if (typeof value === "string") {
+    candidate = new Date(value.replace(" ", "T"))
+    if (!isNaN(candidate.getTime())) return candidate
+  }
+
+  return new Date()
 }
 
 /**

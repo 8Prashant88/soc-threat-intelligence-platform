@@ -6,6 +6,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useInterval } from "@/hooks/use-interval"
 import { Header } from "@/components/layout/header"
 import { AlertsTable } from "@/components/alerts/alerts-table"
 import { useAuth } from "@/lib/auth-context"
@@ -45,6 +46,14 @@ export default function AlertsPage() {
       isMounted = false
     }
   }, [user?.id])
+
+  // Live updates: refresh alerts every 5s so new detections appear automatically.
+  useInterval(() => {
+    if (!user?.id) return
+    getUserAlerts(user.id)
+      .then((loadedAlerts) => setAlerts(loadedAlerts))
+      .catch(() => {})
+  }, user?.id ? 5000 : null)
 
   const handleUpdateStatus = async (alertId: string, status: SecurityAlert["status"]) => {
     if (!user?.id) {

@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle } from "lucide-react"
+import { ApiKeysCard } from "@/components/settings/api-keys-card"
 
 export default function SettingsPage() {
   const { user } = useAuth()
@@ -84,6 +85,9 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Devices & API Keys */}
+        <ApiKeysCard />
 
         {/* Notification Settings */}
         <Card className="bg-card">

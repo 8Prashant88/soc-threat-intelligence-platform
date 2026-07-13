@@ -17,6 +17,21 @@ model User {
   logs         LogEntry[]
   threats      ThreatIntelligence[]
   alerts       SecurityAlert[]
+  apiKeys      ApiKey[]
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  name       String
+  keyHash    String    @unique
+  prefix     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revoked    Boolean   @default(false)
+
+  @@index([userId])
 }
 
 model LogEntry {

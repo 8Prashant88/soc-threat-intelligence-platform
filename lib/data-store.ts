@@ -122,3 +122,37 @@ export async function getUserTopAttackingIPs(userId: string): Promise<TopAttacki
   const json = await apiRequest<{ topAttackingIPs: TopAttackingIP[] }>(`${API_BASE}/users/${userId}/stats`)
   return json.topAttackingIPs
 }
+
+export interface ApiKeySummary {
+  id: string
+  name: string
+  prefix: string
+  createdAt: string
+  lastUsedAt: string | null
+  revoked: boolean
+}
+
+export async function getApiKeys(userId: string): Promise<ApiKeySummary[]> {
+  const json = await apiRequest<{ keys: ApiKeySummary[] }>(`${API_BASE}/users/${userId}/api-keys`)
+  return json.keys
+}
+
+export async function createApiKey(
+  userId: string,
+  name: string,
+): Promise<ApiKeySummary & { plaintext: string }> {
+  const json = await apiRequest<{ key: ApiKeySummary & { plaintext: string } }>(
+    `${API_BASE}/users/${userId}/api-keys`,
+    {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    },
+  )
+  return json.key
+}
+
+export async function revokeApiKey(userId: string, keyId: string): Promise<void> {
+  await apiRequest(`${API_BASE}/users/${userId}/api-keys/${keyId}`, {
+    method: "DELETE",
+  })
+}

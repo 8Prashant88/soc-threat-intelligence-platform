@@ -11,6 +11,7 @@ import type {
 import { prisma } from "./prisma"
 import { analyzeUserLogs } from "./threat-algorithm"
 import { analyzeIpReputation } from "./ip-reputation-check"
+import { generateApiKey, hashApiKey } from "./api-keys"
 
 const ALERT_TYPE_MAP: Record<string, { type: string; severity: string }> = {
   ssh_bruteforce: { type: "brute_force", severity: "high" },
@@ -134,6 +135,86 @@ export async function updateUserLastLogin(userId: string): Promise<void> {
     where: { id: userId },
     data: { lastLogin: new Date() },
   })
+}
+
+// ---------------------------------------------------------------------------
+// API keys (device authentication for log ingestion)
+// ---------------------------------------------------------------------------
+
+export interface ApiKeySummary {
+  id: string
+  name: string
+  prefix: string
+  createdAt: Date
+  lastUsedAt: Date | null
+  revoked: boolean
+}
+
+function mapApiKey(entry: any): ApiKeySummary {
+  return {
+    id: entry.id,
+    name: entry.name,
+    prefix: entry.prefix,
+    createdAt: new Date(entry.createdAt),
+    lastUsedAt: entry.lastUsedAt ? new Date(entry.lastUsedAt) : null,
+    revoked: entry.revoked,
+  }
+}
+
+export async function listApiKeys(userId: string): Promise<ApiKeySummary[]> {
+  await ensureUserExists(userId)
+  const keys = await prisma.apiKey.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  })
+  return keys.map(mapApiKey)
+}
+
+/**
+ * Create a new API key. Returns the summary plus the one-time plaintext key
+ * (the only moment it is ever available).
+ */
+export async function createApiKey(
+  userId: string,
+  name: string,
+): Promise<ApiKeySummary & { plaintext: string }> {
+  await ensureUserExists(userId)
+  const generated = generateApiKey()
+  const created = await prisma.apiKey.create({
+    data: {
+      userId,
+      name: name.trim() || "Unnamed device",
+      keyHash: generated.keyHash,
+      prefix: generated.prefix,
+    },
+  })
+  return { ...mapApiKey(created), plaintext: generated.plaintext }
+}
+
+export async function revokeApiKey(userId: string, keyId: string): Promise<boolean> {
+  await ensureUserExists(userId)
+  const result = await prisma.apiKey.updateMany({
+    where: { id: keyId, userId },
+    data: { revoked: true },
+  })
+  return result.count > 0
+}
+
+/**
+ * Resolve a plaintext API key to its owner. Returns the userId on success and
+ * records the last-used timestamp. Revoked or unknown keys return null.
+ */
+export async function resolveApiKey(plaintext: string): Promise<string | null> {
+  const keyHash = hashApiKey(plaintext)
+  const key = await prisma.apiKey.findUnique({ where: { keyHash } })
+  if (!key || key.revoked) {
+    return null
+  }
+  await prisma.apiKey.update({
+    where: { id: key.id },
+    data: { lastUsedAt: new Date() },
+  })
+  return key.userId
 }
 
 export async function getUserLogs(userId: string): Promise<LogEntry[]> {

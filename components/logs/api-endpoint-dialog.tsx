@@ -1,16 +1,15 @@
 /**
  * SecureLogTI - API Endpoint Dialog
- * Shows the mock API endpoint for programmatic log submission
+ * Documents the live log-ingestion endpoint used by device agents and scripts.
  */
 
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Copy, Check, Terminal, Key } from "lucide-react"
-import { useAuth } from "@/lib/auth-context"
+import Link from "next/link"
 
 interface ApiEndpointDialogProps {
   open: boolean
@@ -18,12 +17,16 @@ interface ApiEndpointDialogProps {
 }
 
 export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps) {
-  const { user } = useAuth()
   const [copied, setCopied] = useState<string | null>(null)
+  const [origin, setOrigin] = useState("")
 
-  // Mock API endpoint info
-  const apiEndpoint = "https://api.securelogti.com/v1/logs"
-  const mockApiKey = `slt_${user?.id?.slice(0, 8) || "demo"}_${Date.now().toString(36)}`
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin)
+    }
+  }, [])
+
+  const apiEndpoint = `${origin || ""}/api/ingest`
 
   const examplePayload = JSON.stringify(
     {
@@ -31,7 +34,7 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
         {
           timestamp: new Date().toISOString(),
           source_ip: "192.168.1.100",
-          log_type: "auth",
+          type: "auth",
           message: "Failed password for admin from 192.168.1.100 port 22 ssh2",
           severity: "warning",
         },
@@ -43,8 +46,8 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
 
   const curlExample = `curl -X POST "${apiEndpoint}" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${mockApiKey}" \\
-  -d '${JSON.stringify({ logs: [{ timestamp: new Date().toISOString(), source_ip: "192.168.1.100", log_type: "auth", message: "Example log message", severity: "info" }] })}'`
+  -H "Authorization: Bearer <your-api-key>" \\
+  -d '${JSON.stringify({ logs: ["Failed password for admin from 192.168.1.100 port 22 ssh2"] })}'`
 
   const handleCopy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text)
@@ -58,12 +61,12 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
         <DialogHeader>
           <DialogTitle className="text-card-foreground flex items-center gap-2">
             <Terminal className="h-5 w-5 text-primary" />
-            API Endpoint
-            <Badge variant="outline" className="ml-2 text-xs">
-              Mock / Academic
-            </Badge>
+            Log Ingestion API
           </DialogTitle>
-          <DialogDescription>Use this endpoint to programmatically submit logs to your account.</DialogDescription>
+          <DialogDescription>
+            Programmatically stream logs from any device. For automatic, real-time macOS collection, use the agent in{" "}
+            <span className="text-primary">Settings → Devices &amp; API Keys</span>.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -84,17 +87,15 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
           <div className="space-y-2">
             <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
               <Key className="h-4 w-4" />
-              Your API Key
+              API Key
             </label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 bg-secondary rounded-md px-3 py-2 text-sm font-mono text-muted-foreground">
-                {mockApiKey}
-              </code>
-              <Button variant="outline" size="icon" onClick={() => handleCopy(mockApiKey, "apikey")}>
-                {copied === "apikey" ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-              </Button>
+            <div className="rounded-md bg-secondary px-3 py-2 text-sm text-card-foreground">
+              Create a device key in{" "}
+              <Link href="/settings" className="text-primary underline underline-offset-2">
+                Settings → Devices &amp; API Keys
+              </Link>
+              , then send it as <code className="text-primary">Authorization: Bearer &lt;key&gt;</code>.
             </div>
-            <p className="text-xs text-muted-foreground">Note: This is a mock API key for demonstration purposes.</p>
           </div>
 
           {/* Request Headers */}
@@ -103,7 +104,7 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
             <div className="bg-secondary rounded-md p-3 font-mono text-sm space-y-1">
               <p>
                 <span className="text-muted-foreground">Content-Type:</span>{" "}
-                <span className="text-card-foreground">application/json</span>
+                <span className="text-card-foreground">application/json (or text/plain)</span>
               </p>
               <p>
                 <span className="text-muted-foreground">Authorization:</span>{" "}
@@ -138,6 +139,10 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
             <pre className="bg-secondary rounded-md p-3 text-xs font-mono text-card-foreground overflow-x-auto">
               {examplePayload}
             </pre>
+            <p className="text-xs text-muted-foreground">
+              You can also POST raw log lines: <code>{`{ "logs": ["raw line 1", "raw line 2"] }`}</code> — the server
+              auto-detects the format.
+            </p>
           </div>
 
           {/* cURL Example */}
@@ -161,15 +166,6 @@ export function ApiEndpointDialog({ open, onOpenChange }: ApiEndpointDialogProps
             <pre className="bg-secondary rounded-md p-3 text-xs font-mono text-card-foreground overflow-x-auto whitespace-pre-wrap">
               {curlExample}
             </pre>
-          </div>
-
-          {/* Note */}
-          <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
-            <p className="text-sm text-card-foreground">
-              <strong>Note:</strong> This API endpoint is mocked for academic demonstration purposes. In a production
-              environment, this would connect to a real backend service that processes and stores your log data
-              securely.
-            </p>
           </div>
         </div>
       </DialogContent>
