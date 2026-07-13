@@ -18,6 +18,8 @@ yarn-error.log*
 
 # env files
 .env*
+# ...but keep the committed example
+!.env.example
 
 # vercel
 .vercel
@@ -25,5 +27,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
 # local sqlite dev database
 /prisma/dev.db
+
+# macOS
+.DS_Store

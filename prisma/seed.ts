@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/prisma"
-import { hashPassword } from "@/lib/auth"
-import { analyzeUserLogs } from "@/lib/threat-algorithm"
-import { analyzeIpReputation } from "@/lib/ip-reputation-check"
+import { prisma } from "../lib/prisma"
+import { hashPassword } from "../lib/auth"
+import { analyzeUserLogs } from "../lib/threat-algorithm"
+import { analyzeIpReputation } from "../lib/ip-reputation-check"
 
 async function main() {
   // Check if demo user exists
