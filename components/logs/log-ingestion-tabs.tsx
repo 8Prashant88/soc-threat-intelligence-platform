@@ -28,7 +28,7 @@ export function LogIngestionTabs({ onLogsAdded }: LogIngestionTabsProps) {
       id: "device",
       icon: Radio,
       title: "Stream from Device",
-      description: "Real-time logs via API key (macOS agent / API)",
+      description: "Real-time logs from macOS, Linux or Windows",
       action: () => setIsApiOpen(true),
       highlight: true,
     },

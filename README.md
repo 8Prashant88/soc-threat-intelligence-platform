@@ -62,33 +62,48 @@ Open **http://localhost:3000** and either:
 ### 1. Create a device API key
 In the app: **Settings → Devices & API Keys → New key**. Copy it — it's shown once.
 
-### 2. Run the macOS agent
-The agent streams this Mac's unified log and ships security-relevant events:
+### 2. Run the agent for your OS
+Set two environment variables (your endpoint + key), then run the agent for
+your platform. New events appear on the dashboard within seconds. In the app,
+the **Logs → Add Logs → Stream from Device** dialog shows these commands
+pre-filled for you.
 
+**macOS** (streams the unified security log):
 ```bash
 export SECURELOG_ENDPOINT="http://localhost:3000/api/ingest"
 export SECURELOG_API_KEY="slt_xxxxxxxx..."   # the key you just created
 npm run agent            # or: ./scripts/securelog-agent.sh
 ```
 
-Watch the dashboard — new events, threats, and alerts appear within seconds.
+**Linux** (systemd journal, or `/var/log/auth.log` / `secure`):
+```bash
+export SECURELOG_ENDPOINT="http://localhost:3000/api/ingest"
+export SECURELOG_API_KEY="slt_xxxxxxxx..."
+./scripts/securelog-agent-linux.sh      # run with sudo if you can't read the auth logs
+```
 
-**Tunables (env vars):** `SECURELOG_PREDICATE`, `SECURELOG_BATCH_SIZE`
-(default 20), `SECURELOG_FLUSH_SECS` (default 5), `SECURELOG_LEVEL`
-(`default`/`info`/`debug`).
+**Windows** (Security / System event logs — run PowerShell as Administrator):
+```powershell
+$env:SECURELOG_ENDPOINT="http://localhost:3000/api/ingest"
+$env:SECURELOG_API_KEY="slt_xxxxxxxx..."
+.\scripts\securelog-agent.ps1
+```
 
 > **macOS note:** macOS masks remote IPs as `<private>` in the unified log
 > unless a logging configuration profile enabling private data is installed.
 > Detection still works for any event whose IP is visible (e.g. `sshd` failures
 > with Remote Login enabled + a private-data profile).
 
-### 3. Collecting from *other* devices
+### 3. Collecting from *other* machines
 Run the instance on one machine and set `SECURELOG_ENDPOINT` on each device to
-that machine's address, e.g. `http://192.168.1.50:3000/api/ingest`. Any OS can
-ship logs — see the direct-POST method below. Give each device its own API key
-so you can revoke them individually.
+that machine's address, e.g. `http://192.168.1.50:3000/api/ingest`. Give each
+device its own API key so you can revoke them individually.
 
-### 4. Or POST directly from any device / OS
+### 4. No terminal? Upload or paste
+For a one-off or a non-technical user, the **Logs** page also accepts a pasted
+log snippet or an uploaded `.log`/`.txt` file — no agent or command line needed.
+
+### 5. Or POST directly from any device / OS
 ```bash
 curl -X POST "http://localhost:3000/api/ingest" \
   -H "Authorization: Bearer <your-api-key>" \
